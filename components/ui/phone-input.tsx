@@ -2,6 +2,8 @@ import * as React from "react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
+import { getExampleNumber } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,14 +33,17 @@ type PhoneInputProps = Omit<
 
 const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
-    ({ className, onChange, ...props }, ref) => {
+    ({ className, onChange, defaultCountry, ...props }, ref) => {
+      const [country, setCountry] = React.useState<RPNInput.Country | undefined>(defaultCountry);
       return (
         <RPNInput.default
           ref={ref}
           className={cn("flex", className)}
           flagComponent={FlagComponent}
           countrySelectComponent={CountrySelect}
-          inputComponent={InputComponent}
+          inputComponent={(inputProps) => (
+            <InputComponent {...inputProps} country={country} />
+          )}
           smartCaret={false}
           /**
            * Handles the onChange event.
@@ -49,6 +54,8 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
            *
            * @param {E164Number | undefined} value - The entered value
            */
+          defaultCountry={defaultCountry}
+          onCountryChange={setCountry}
           onChange={(value) => onChange?.(value || ("" as RPNInput.Value))}
           {...props}
         />
@@ -59,14 +66,18 @@ PhoneInput.displayName = "PhoneInput";
 
 const InputComponent = React.forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input">
->(({ className, ...props }, ref) => (
-  <Input
-    className={cn("rounded-e-lg rounded-s-none", className)}
-    {...props}
-    ref={ref}
-  />
-));
+  React.ComponentProps<"input"> & { country?: RPNInput.Country }
+>(({ className, country, ...props }, ref) => {
+  return (
+    <Input
+      className={cn("rounded-e-lg rounded-s-none", className)}
+      placeholder={country ? getExampleNumber(country, examples)?.formatNational() : "Enter phone number"}
+      maxLength={15}
+      {...props}
+      ref={ref}
+    />
+  );
+});
 InputComponent.displayName = "InputComponent";
 
 type CountryEntry = { label: string; value: RPNInput.Country | undefined };
