@@ -31,19 +31,25 @@ type PhoneInputProps = Omit<
     onChange?: (value: RPNInput.Value) => void;
   };
 
-const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
-  React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
-    ({ className, onChange, defaultCountry, ...props }, ref) => {
-      const [country, setCountry] = React.useState<RPNInput.Country | undefined>(defaultCountry);
+const PhoneInput = React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
+	({ className, onChange, defaultCountry, placeholder, ...props }, ref) => {
+    const [country, setCountry] = React.useState<string>(defaultCountry);
       return (
         <RPNInput.default
           ref={ref}
           className={cn("flex", className)}
           flagComponent={FlagComponent}
           countrySelectComponent={CountrySelect}
-          inputComponent={(inputProps) => (
-            <InputComponent {...inputProps} country={country} />
+          countrySelectComponent={(props) => (
+            <CountrySelect
+              {...props}
+              onChange={(country) => {
+                setCountry(country)
+                props.onChange(country)
+              }}
+            />
           )}
+          inputComponent={InputComponent}
           smartCaret={false}
           /**
            * Handles the onChange event.
@@ -54,9 +60,9 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
            *
            * @param {E164Number | undefined} value - The entered value
            */
-          defaultCountry={defaultCountry}
-          onCountryChange={setCountry}
-          onChange={(value) => onChange?.(value || ("" as RPNInput.Value))}
+          onChange={(value) => onChange?.(value || ('' as RPNInput.Value))}
+          defaultCountry={defaultCountry as RPNInput.Country}
+          placeholder={placeholder || getExampleNumber(country as RPNInput.Country, examples)?.formatNational()}
           {...props}
         />
       );
@@ -64,20 +70,11 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   );
 PhoneInput.displayName = "PhoneInput";
 
-const InputComponent = React.forwardRef<
-  HTMLInputElement,
-  React.ComponentProps<"input"> & { country?: RPNInput.Country }
->(({ className, country, ...props }, ref) => {
-  return (
-    <Input
-      className={cn("rounded-e-lg rounded-s-none", className)}
-      placeholder={country ? getExampleNumber(country, examples)?.formatNational() : "Enter phone number"}
-      maxLength={15}
-      {...props}
-      ref={ref}
-    />
-  );
-});
+const InputComponent = React.forwardRef<HTMLInputElement, React.ComponentProps<typeof Input>>(
+	({ className, ...props }, ref) => (
+		<Input className={cn('rounded-e-lg rounded-s-none', className)} {...props} ref={ref} />
+	);
+);
 InputComponent.displayName = "InputComponent";
 
 type CountryEntry = { label: string; value: RPNInput.Country | undefined };
